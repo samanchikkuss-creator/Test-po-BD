@@ -172,7 +172,7 @@
             margin-top: 5px; 
         }
         
-        /* Стили для поиска */
+
         .search-container {
             margin: 20px 0;
             text-align: center;
@@ -244,6 +244,25 @@
         .search-results-scroll::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        
+        .random-tests-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .random-tests-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .random-test-card {
+            flex: 1;
+            min-width: 250px;
+            max-width: 300px;
+        }
     </style>
 </head>
 <body>
@@ -268,9 +287,30 @@
         <div class="section-title section-new">✨ Новые вопросы (161-883)</div>
         <div class="menu-grid" id="stages-container-new"></div>
         
-        <div class="stage-card special" onclick="startRandom()" style="margin-top:20px;">
-            <h3>🎲 СЛУЧАЙНЫЕ 30 ВОПРОСОВ</h3>
-            <p>Рандомный набор из всех вопросов</p>
+
+        <div class="random-tests-container">
+            <div class="section-title" style="background: #f5f3ff; color: var(--random); border-left: 5px solid var(--random);">
+                🎲 СЛУЧАЙНЫЕ ТЕСТЫ
+            </div>
+            <div class="random-tests-grid">
+                <div class="stage-card old-stage random-test-card" onclick="startRandomOld()">
+                    <h3>📚 СЛУЧАЙНЫЕ 30 (СТАРЫЕ)</h3>
+                    <p>Рандом из вопросов 1-160</p>
+                    <div class="stage-info">30 случайных старых вопросов</div>
+                </div>
+                
+                <div class="stage-card new-stage random-test-card" onclick="startRandomNew()">
+                    <h3>✨ СЛУЧАЙНЫЕ 30 (НОВЫЕ)</h3>
+                    <p>Рандом из вопросов 161-883</p>
+                    <div class="stage-info">30 случайных новых вопросов</div>
+                </div>
+                
+                <div class="stage-card special random-test-card" onclick="startRandomAll()">
+                    <h3>🎲 СЛУЧАЙНЫЕ 30 (ВСЕ)</h3>
+                    <p>Рандом из всех вопросов</p>
+                    <div class="stage-info">15 старых + 15 новых</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1383,24 +1423,17 @@
         ["Какая из комбинаций функций вернет текущий год?<br>a) DATE(YEAR(NOW()));<br>b) MONTH(CURDATE());<br>c) YEAR(CURDATE());<br>d) YEAR(CURTIME());", "c) YEAR(CURDATE())", "c, d", "только c", "a, c, d"]
     ];
 
+
     const OLD_QUESTIONS_COUNT = 160; 
     const NEW_QUESTIONS_COUNT = 100; 
     const TOTAL_QUESTIONS = OLD_QUESTIONS_COUNT + NEW_QUESTIONS_COUNT;
 
-    if (allQuestionsRaw.length === 2) { 
-        for (let i = allQuestionsRaw.length; i < OLD_QUESTIONS_COUNT; i++) {
+    if (allQuestionsRaw.length === 0) { 
+        for (let i = 0; i < TOTAL_QUESTIONS; i++) {
+            const isOld = i < OLD_QUESTIONS_COUNT;
+            const category = isOld ? 'Старый' : 'Новый';
             allQuestionsRaw.push([
-                `[Старый] Тестовый вопрос ${i + 1} по базам данных?`,
-                "Правильный ответ",
-                "Неправильный ответ 1",
-                "Неправильный ответ 2",
-                "Неправильный ответ 3"
-            ]);
-        }
-        
-        for (let i = OLD_QUESTIONS_COUNT; i < TOTAL_QUESTIONS; i++) {
-            allQuestionsRaw.push([
-                `[Новый] Тестовый вопрос ${i + 1} по современным БД?`,
+                `[${category}] Тестовый вопрос ${i + 1} по базам данных?`,
                 "Правильный ответ",
                 "Неправильный ответ 1",
                 "Неправильный ответ 2",
@@ -1649,12 +1682,8 @@
                 startTest(questions, i + 1);
             };
             
-            let stageType = (i < 6) ? 'old' : 'new'; 
-            let badgeText = stageType === 'old' ? 'Старое' : 'Новое';
-            let badgeClass = stageType === 'old' ? 'badge-old' : 'badge-new';
-            
             card.innerHTML = `
-                <span class="badge-info ${badgeClass}">${badgeText}</span>
+                <span class="badge-info badge-old">Старое</span>
                 <h3>Этап ${i+1} (Старые)</h3>
                 <p>Вопросы ${start + 1}-${end}</p>
                 <div class="stage-info">${questions.length} вопросов</div>
@@ -1721,7 +1750,44 @@
         renderSidebarLogs();
     }
 
-    function startRandom() {
+    
+    function startRandomOld() {
+        
+        const oldIndices = Array.from({length: OLD_QUESTIONS_COUNT}, (_, i) => i);
+        const shuffledOld = [...oldIndices].sort(() => Math.random() - 0.5);
+        
+        const selected = [];
+        const maxQuestions = Math.min(30, OLD_QUESTIONS_COUNT);
+        
+        for(let i = 0; i < maxQuestions; i++) {
+            selected.push(allQuestionsRaw[shuffledOld[i]]);
+        }
+        
+        currentStageType = 'random-old';
+        startTest(selected, 'Случайные 30 (Старые)');
+    }
+
+    function startRandomNew() {
+        
+        const newStartIdx = OLD_QUESTIONS_COUNT;
+        const newIndices = Array.from(
+            {length: allQuestionsRaw.length - OLD_QUESTIONS_COUNT}, 
+            (_, i) => i + OLD_QUESTIONS_COUNT
+        );
+        const shuffledNew = [...newIndices].sort(() => Math.random() - 0.5);
+        
+        const selected = [];
+        const maxQuestions = Math.min(30, newIndices.length);
+        
+        for(let i = 0; i < maxQuestions; i++) {
+            selected.push(allQuestionsRaw[shuffledNew[i]]);
+        }
+        
+        currentStageType = 'random-new';
+        startTest(selected, 'Случайные 30 (Новые)');
+    }
+
+    function startRandomAll() {
         const usedIndices = new Set();
         const selected = [];
         const maxQuestions = 30;
@@ -1754,8 +1820,8 @@
             }
         }
         
-        currentStageType = 'random';
-        startTest(selected, 'Случайные 30');
+        currentStageType = 'random-all';
+        startTest(selected, 'Случайные 30 (Все)');
     }
 
     function startTest(qs, stageName) {
