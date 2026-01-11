@@ -171,13 +171,93 @@
             color: #94a3b8; 
             margin-top: 5px; 
         }
+        
+        /* Стили для поиска */
+        .search-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .search-input {
+            width: 80%;
+            max-width: 500px;
+            padding: 12px 20px;
+            border: 2px solid #2563eb;
+            border-radius: 10px;
+            font-size: 1em;
+            outline: none;
+            transition: 0.2s;
+        }
+        
+        .search-input:focus {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1);
+        }
+        
+        .search-results {
+            margin-top: 10px;
+        }
+        
+        .search-result-item {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .search-result-item:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+        
+        .search-mark {
+            background-color: #fef3c7;
+            padding: 1px 3px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+        
+       
+        .search-results-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .search-results-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .search-results-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+        
+        .search-results-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        .search-results-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="menu-screen">
-        <h1> Тесты по База Данных</h1>
+        <h1>Тесты по База Данных</h1>
+        
+       
+        <div class="search-container">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск вопросов..." onkeyup="searchQuestions()">
+            <div id="searchResults" class="search-results"></div>
+        </div>
+        
         <button class="history-btn" onclick="toggleSidePanel()">
             📜 История и Статистика <span id="main-history-count" class="history-count">0</span>
         </button>
@@ -1303,14 +1383,11 @@
         ["Какая из комбинаций функций вернет текущий год?<br>a) DATE(YEAR(NOW()));<br>b) MONTH(CURDATE());<br>c) YEAR(CURDATE());<br>d) YEAR(CURTIME());", "c) YEAR(CURDATE())", "c, d", "только c", "a, c, d"]
     ];
 
-    
     const OLD_QUESTIONS_COUNT = 160; 
     const NEW_QUESTIONS_COUNT = 100; 
     const TOTAL_QUESTIONS = OLD_QUESTIONS_COUNT + NEW_QUESTIONS_COUNT;
 
-    
     if (allQuestionsRaw.length === 2) { 
-        
         for (let i = allQuestionsRaw.length; i < OLD_QUESTIONS_COUNT; i++) {
             allQuestionsRaw.push([
                 `[Старый] Тестовый вопрос ${i + 1} по базам данных?`,
@@ -1321,7 +1398,6 @@
             ]);
         }
         
-       
         for (let i = OLD_QUESTIONS_COUNT; i < TOTAL_QUESTIONS; i++) {
             allQuestionsRaw.push([
                 `[Новый] Тестовый вопрос ${i + 1} по современным БД?`,
@@ -1337,6 +1413,172 @@
     let currentIdx = 0;
     let timerInterval;
     let currentStageType = ''; 
+
+    
+    function searchQuestions() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+        const resultsContainer = document.getElementById('searchResults');
+        
+        if (!searchTerm) {
+            resultsContainer.innerHTML = '';
+            return;
+        }
+        
+        const results = [];
+        
+        for (let i = 0; i < allQuestionsRaw.length; i++) {
+            const question = allQuestionsRaw[i][0];
+            const correctAnswer = allQuestionsRaw[i][1];
+            
+            if (question.toLowerCase().includes(searchTerm)) {
+                results.push({
+                    index: i,
+                    question: question,
+                    correctAnswer: correctAnswer,
+                    isOld: i < OLD_QUESTIONS_COUNT
+                });
+            }
+            
+            for (let j = 1; j < allQuestionsRaw[i].length; j++) {
+                const answer = allQuestionsRaw[i][j];
+                if (answer.toLowerCase().includes(searchTerm) && 
+                    !results.some(r => r.index === i)) {
+                    results.push({
+                        index: i,
+                        question: question,
+                        correctAnswer: correctAnswer,
+                        isOld: i < OLD_QUESTIONS_COUNT
+                    });
+                    break;
+                }
+            }
+            
+            if (results.length >= 50) break;
+        }
+        
+        if (results.length === 0) {
+            resultsContainer.innerHTML = `
+                <div style="background: #fef2f2; border: 2px solid #fecaca; 
+                           border-radius: 10px; padding: 15px; color: #991b1b; 
+                           margin-top: 10px;">
+                    🔍 Вопросов по запросу "${searchTerm}" не найдено
+                </div>
+            `;
+            return;
+        }
+        
+        let html = `
+            <div style="background: #f0f9ff; border: 2px solid #bae6fd; 
+                       border-radius: 10px; padding: 15px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #0369a1;">Найдено вопросов: ${results.length}</strong>
+                    <button onclick="clearSearch()" style="background: #dc2626; color: white; 
+                           border: none; padding: 5px 15px; border-radius: 6px; 
+                           cursor: pointer; font-size: 0.9em;">Очистить</button>
+                </div>
+                <div class="search-results-scroll">
+        `;
+        
+        results.forEach((result, idx) => {
+            const questionNumber = result.index + 1;
+            const category = result.isOld ? 'old' : 'new';
+            const categoryText = result.isOld ? 'Старый' : 'Новый';
+            const categoryColor = result.isOld ? '#7c3aed' : '#10b981';
+            const categoryBg = result.isOld ? '#ede9fe' : '#d1fae5';
+            
+            let displayQuestion = highlightText(result.question, searchTerm);
+            let displayAnswer = highlightText(result.correctAnswer, searchTerm);
+            
+            html += `
+                <div class="search-result-item" onclick="startFromSearch(${result.index})">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="background: ${categoryBg}; color: ${categoryColor}; 
+                               padding: 3px 10px; border-radius: 15px; font-size: 0.85em; font-weight: 600;">
+                            ${categoryText} (${questionNumber})
+                        </span>
+                        <button style="background: #2563eb; color: white; border: none; 
+                               padding: 5px 12px; border-radius: 6px; cursor: pointer; 
+                               font-size: 0.85em; transition: 0.2s;"
+                                onmouseover="this.style.backgroundColor='#1d4ed8'"
+                                onmouseout="this.style.backgroundColor='#2563eb'"
+                                onclick="event.stopPropagation(); startSingleQuestion(${result.index})">
+                            Пройти этот вопрос
+                        </button>
+                    </div>
+                    <div style="font-weight: 600; margin-bottom: 8px; line-height: 1.4;">
+                        ${displayQuestion}
+                    </div>
+                    <div style="color: #059669; font-size: 0.95em; padding: 8px; 
+                           background: #f0fdf4; border-radius: 6px; border-left: 3px solid #059669;">
+                        <strong>Правильный ответ:</strong> ${displayAnswer}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+        resultsContainer.innerHTML = html;
+    }
+
+    function highlightText(text, searchTerm) {
+        if (!searchTerm) return text;
+        
+        const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return text.replace(regex, '<span class="search-mark">$1</span>');
+    }
+
+    function clearSearch() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+
+    function startFromSearch(questionIndex) {
+        const category = questionIndex < OLD_QUESTIONS_COUNT ? 'old' : 'new';
+        const stageNum = Math.floor(questionIndex / 30) + 1;
+        
+        let start, end;
+        
+        if (category === 'old') {
+            start = Math.floor(questionIndex / 30) * 30;
+            end = Math.min(start + 30, OLD_QUESTIONS_COUNT);
+        } else {
+            start = OLD_QUESTIONS_COUNT + Math.floor((questionIndex - OLD_QUESTIONS_COUNT) / 30) * 30;
+            end = Math.min(start + 30, allQuestionsRaw.length);
+        }
+        
+        const questions = allQuestionsRaw.slice(start, end);
+        currentStageType = category;
+        
+        startTest(questions, `Этап ${stageNum} (${category === 'old' ? 'Старые' : 'Новые'})`);
+        
+        setTimeout(() => {
+            const questionInStage = questionIndex - start;
+            currentIdx = questionInStage;
+            renderQuestion();
+            updateNavigationButtons();
+            
+            const qText = document.getElementById('q-text');
+            qText.innerHTML = qText.innerHTML + '<div style="margin-top: 10px; padding: 8px; background: #fef3c7; border-radius: 6px; border-left: 3px solid #f59e0b;">🔍 Вы перешли к этому вопросу из поиска</div>';
+        }, 100);
+    }
+
+    function startSingleQuestion(questionIndex) {
+        const singleQuestion = [allQuestionsRaw[questionIndex]];
+        currentStageType = questionIndex < OLD_QUESTIONS_COUNT ? 'old' : 'new';
+        
+        startTest(singleQuestion, 'Один вопрос');
+        
+        setTimeout(() => {
+            const category = questionIndex < OLD_QUESTIONS_COUNT ? 'Старый' : 'Новый';
+            const qText = document.getElementById('q-text');
+            qText.innerHTML = qText.innerHTML + `
+                <div style="margin-top: 10px; padding: 10px; background: #e0f2fe; 
+                           border-radius: 6px; border-left: 3px solid #0ea5e9;">
+                    <strong>📝 Информация:</strong> Вопрос №${questionIndex + 1} (${category})
+                </div>
+            `;
+        }, 100);
+    }
 
     function toggleSidePanel() {
         document.getElementById('side-panel').classList.toggle('active');
@@ -1393,7 +1635,6 @@
         
         const QUESTIONS_PER_STAGE = 30;
         
-        
         const oldStages = Math.ceil(OLD_QUESTIONS_COUNT / QUESTIONS_PER_STAGE);
         
         for(let i = 0; i < oldStages; i++) {
@@ -1421,7 +1662,6 @@
             containerOld.appendChild(card);
         }
         
-        
         const newStartIdx = OLD_QUESTIONS_COUNT;
         const newQuestionsCount = allQuestionsRaw.length - newStartIdx;
         const newStages = Math.ceil(newQuestionsCount / QUESTIONS_PER_STAGE);
@@ -1448,7 +1688,6 @@
             containerNew.appendChild(card);
         }
         
-        
         const allOldCard = document.createElement('div');
         allOldCard.className = 'stage-card old-stage';
         allOldCard.style.marginTop = '20px';
@@ -1463,7 +1702,6 @@
             startTest(allQuestionsRaw.slice(0, OLD_QUESTIONS_COUNT), 'Все старые');
         };
         containerOld.appendChild(allOldCard);
-        
         
         const allNewCard = document.createElement('div');
         allNewCard.className = 'stage-card new-stage';
@@ -1490,12 +1728,10 @@
         
         const oldIndices = Array.from({length: OLD_QUESTIONS_COUNT}, (_, i) => i);
         const newIndices = Array.from({length: allQuestionsRaw.length - OLD_QUESTIONS_COUNT}, (_, i) => i + OLD_QUESTIONS_COUNT);
-        
 
         oldIndices.sort(() => Math.random() - 0.5);
         newIndices.sort(() => Math.random() - 0.5);
         
-       
         const oldCount = Math.min(15, oldIndices.length);
         const newCount = Math.min(15, newIndices.length);
         
@@ -1507,7 +1743,6 @@
             selected.push(allQuestionsRaw[newIndices[i]]);
         }
         
-   
         if(selected.length < 30) {
             const allIndices = Array.from({length: allQuestionsRaw.length}, (_, i) => i);
             allIndices.sort(() => Math.random() - 0.5);
@@ -1544,7 +1779,6 @@
         document.getElementById('quiz-screen').classList.remove('hidden');
         document.getElementById('result-screen').classList.add('hidden');
         
-  
         document.getElementById('q-text').innerHTML = `<span class="question-label ${stageName === 'Случайные 30' ? 'label-new' : (currentStageType === 'old' ? 'label-old' : 'label-new')}">
             ${stageName}
         </span>`;
@@ -1565,7 +1799,6 @@
             let s = time % 60;
             document.getElementById('timer').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
             
-            
             if(time < 300) { 
                 document.getElementById('timer').style.color = 'var(--error)';
             }
@@ -1585,7 +1818,6 @@
         nav.innerHTML = '';
         
         const totalQuestions = currentQuestions.length;
-        
         
         for(let i = 0; i < totalQuestions; i++) {
             addNumberButton(i, nav);
@@ -1622,7 +1854,6 @@
         
         const totalQuestions = currentQuestions.length;
         
-       
         const prevButton = document.createElement('button');
         prevButton.className = 'nav-button nav-button-prev';
         prevButton.innerHTML = '◀ Назад';
@@ -1636,7 +1867,6 @@
         };
         navContainer.appendChild(prevButton);
         
-      
         const nextButton = document.createElement('button');
         nextButton.className = 'nav-button nav-button-next';
         nextButton.innerHTML = currentIdx === totalQuestions - 1 ? 'Завершить тест' : 'Далее ▶';
@@ -1655,37 +1885,31 @@
     function renderQuestion() {
         const q = currentQuestions[currentIdx];
         
-        
         const progress = ((currentIdx + 1) / currentQuestions.length * 100).toFixed(1);
         document.getElementById('progress-fill').style.width = `${progress}%`;
         document.getElementById('progress-text').innerText = `Прогресс: ${currentIdx + 1}/${currentQuestions.length} (${progress}%)`;
         document.getElementById('question-counter').innerText = `Вопрос ${currentIdx + 1} из ${currentQuestions.length}`;
         
-      
         const questionLabel = q.isOld ? 
             `<span class="question-label label-old">Старое (${q.globalIndex + 1})</span>` : 
             `<span class="question-label label-new">Новое (${q.globalIndex + 1})</span>`;
         
         document.getElementById('q-text').innerHTML = questionLabel + q.q;
         
-        
         document.querySelectorAll('.num-item').forEach(el => {
             el.classList.remove('active');
             if(parseInt(el.innerText) === currentIdx + 1) {
                 el.classList.add('active');
-               
                 el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             }
         });
         
-      
         const box = document.getElementById('options-box'); 
         box.innerHTML = '';
         
         q.options.forEach((opt, i) => {
             const btn = document.createElement('button');
             btn.className = 'option';
-            
             
             const letter = String.fromCharCode(65 + i);
             
@@ -1717,7 +1941,6 @@
             
             box.appendChild(btn);
         });
-        
         
         updateNavigationButtons();
     }
@@ -1770,7 +1993,6 @@
             ⏸ Без ответа: ${unansweredCount}
         `;
         
-        
         const results = JSON.parse(localStorage.getItem('tr_results') || '[]');
         results.push({ 
             date: new Date().toLocaleDateString('ru-RU'), 
@@ -1784,7 +2006,6 @@
             stageType: currentStageType
         });
         localStorage.setItem('tr_results', JSON.stringify(results));
-        
         
         const errorPool = JSON.parse(localStorage.getItem('tr_errors') || '[]');
         currentQuestions.filter(q => q.user !== q.correctIdx).forEach(e => {
@@ -1801,7 +2022,6 @@
         
         renderSidebarLogs();
     }
-
     
     window.onload = function() {
         console.log(`Всего вопросов: ${allQuestionsRaw.length}`);
